@@ -62,7 +62,7 @@ msgid "Public Key"
 msgstr "公钥"
 
 msgid "WireGuard Status"
-msgstr "WireGuard 状态"
+msgstr "WiGd状态"
 
 msgid "h ago"
 msgstr "小时前"
