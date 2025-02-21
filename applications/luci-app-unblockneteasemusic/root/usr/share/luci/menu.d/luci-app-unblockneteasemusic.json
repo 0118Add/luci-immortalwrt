@@ -1,6 +1,6 @@
 {
 	"admin/services/unblockneteasemusic": {
-		"title": "音乐云解锁",
+		"title": "音乐解锁",
 		"order": 50,
 		"action": {
 			"type": "firstchild"
