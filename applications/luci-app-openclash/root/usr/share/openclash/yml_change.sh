@@ -341,11 +341,12 @@ threads << Thread.new {
          Value['log-level']='$9';
       end;
       Value['allow-lan']=true;
-      Value['disable-keep-alive']=true;
       Value['external-controller']='0.0.0.0:$3';
       Value['secret']='$2';
       Value['bind-address']='*';
       Value['external-ui']='/usr/share/openclash/ui';
+      Value['keep-alive-interval']=15;
+      Value['keep-alive-idle']=600;
       if $6 == 1 then
          Value['ipv6']=true;
       else
@@ -373,6 +374,13 @@ threads << Thread.new {
       if '${29}' != '0' then
          Value['global-client-fingerprint']='${29}';
       end;
+      if ${36} == 1 then
+         if Value.key?('experimental') then
+            Value['experimental']['quic-go-disable-gso']=true;
+         else
+            Value['experimental']={'quic-go-disable-gso'=>true};
+         end;
+      end;
 
       if ${16} == 1 then
          Value['dns']['ipv6']=true;
@@ -397,7 +405,7 @@ threads << Thread.new {
       end;
       
       if ${18} == 1 then
-         Value_sniffer={'sniffer'=>{'enable'=>true}};
+         Value_sniffer={'sniffer'=>{'enable'=>true, 'override-destination'=>true, 'sniff'=>{'QUIC'=>{'ports'=>[443]}, 'TLS'=>{'ports'=>[443, 8443]}, 'HTTP'=>{'ports'=>[80, '8080-8880'], 'override-destination'=>true}}, 'force-domain'=>['+.netflix.com', '+.nflxvideo.net', '+.amazonaws.com', '+.media.dssott.com'], 'skip-domain'=>['+.apple.com', 'Mijia Cloud', 'dlg.io.mi.com', '+.oray.com', '+.sunlogin.net', '+.push.apple.com']}};
          Value['sniffer']=Value_sniffer['sniffer'];
          if '$1' == 'redir-host' then
             Value['sniffer']['force-dns-mapping']=true;
@@ -419,12 +427,9 @@ threads << Thread.new {
          Value['tun']=Value_2['tun'];
          Value['tun']['stack']='$stack_type';
          Value['tun']['device']='utun';
-         Value_2={'dns-hijack'=>['tcp://any:53']};
+         Value_2={'dns-hijack'=>['127.0.0.1:53']};
          Value['tun'].merge!(Value_2);
-         if '$stack_type' != 'mixed' then
-            Value['tun']['gso']=true;
-            Value['tun']['gso-max-size']=65536;
-         end;
+         Value['tun']['endpoint-independent-nat']=true;
          Value['tun']['auto-route']=false;
          Value['tun']['auto-detect-interface']=false;
          Value['tun']['auto-redirect']=false;
@@ -452,7 +457,7 @@ threads << Thread.new {
          Value.delete('ebpf');
       end;
 
-      if '${37}' == '0' then
+      if '${35}' == '0' then
          Value['routing-mark']=6666;
       else
          if Value.key?('routing-mark') then
@@ -789,6 +794,8 @@ begin
          YAML.LOG('Tip: Respect-rules Option Need Proxy-server-nameserver Option Must Be Setted, Auto Set to【114.114.114.114, 119.29.29.29, 8.8.8.8, 1.1.1.1】');
       end;
    end;
+rescue Exception => e
+      YAML.LOG('Error: Config File Overwrite Failed,【' + e.message + '】');
 ensure
    File.open('$5','w') {|f| YAML.dump(Value, f)};
 end" 2>/dev/null >> $LOG_FILE

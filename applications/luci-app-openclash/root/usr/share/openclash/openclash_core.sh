@@ -3,6 +3,18 @@
 . /usr/share/openclash/openclash_ps.sh
 . /usr/share/openclash/log.sh
 
+set_lock() {
+   exec 872>"/tmp/lock/openclash_core.lock" 2>/dev/null
+   flock -x 872 2>/dev/null
+}
+
+del_lock() {
+   flock -u 872 2>/dev/null
+   rm -rf "/tmp/lock/openclash_core.lock" 2>/dev/null
+}
+
+set_lock
+
 github_address_mod=$(uci -q get openclash.config.github_address_mod || echo 0)
 if [ "$github_address_mod" = "0" ] && [ -z "$(echo $2 2>/dev/null |grep -E 'http|one_key_update')" ] && [ -z "$(echo $3 2>/dev/null |grep 'http')" ]; then
    LOG_OUT "Tip: If the download fails, try setting the CDN in Overwrite Settings - General Settings - Github Address Modify Options"
@@ -29,6 +41,7 @@ fi
 if [ ! -f "/tmp/clash_last_version" ]; then
    LOG_OUT "Error: 【"$CORE_TYPE"】Core Version Check Error, Please Try Again Later..."
    SLOG_CLEAN
+   del_lock
    exit 0
 fi
 
@@ -52,8 +65,6 @@ if [ "$CORE_CV" != "$CORE_LV" ] || [ -z "$CORE_CV" ]; then
       if [ "$github_address_mod" != "0" ]; then
          if [ "$github_address_mod" == "https://cdn.jsdelivr.net/" ] || [ "$github_address_mod" == "https://fastly.jsdelivr.net/" ] || [ "$github_address_mod" == "https://testingcf.jsdelivr.net/" ]; then
             curl -SsL --connect-timeout 30 -m 60 --speed-time 30 --speed-limit 1 --retry 2 "$github_address_mod"gh/vernesong/OpenClash@core/"$RELEASE_BRANCH"/meta/clash-"$CPU_MODEL".tar.gz -o /tmp/clash_meta.tar.gz 2>&1 |sed ':a;N;$!ba; s/\n/ /g' | awk -v time="$(date "+%Y-%m-%d %H:%M:%S")" -v file="/tmp/clash_meta.tar.gz" '{print time "【" file "】Download Failed:【"$0"】"}' >> "$LOG_FILE"
-         elif [ "$github_address_mod" == "https://raw.fastgit.org/" ]; then
-            curl -SsL --connect-timeout 30 -m 60 --speed-time 30 --speed-limit 1 --retry 2 https://raw.fastgit.org/vernesong/OpenClash/core/"$RELEASE_BRANCH"/meta/clash-"$CPU_MODEL".tar.gz -o /tmp/clash_meta.tar.gz 2>&1 |sed ':a;N;$!ba; s/\n/ /g' | awk -v time="$(date "+%Y-%m-%d %H:%M:%S")" -v file="/tmp/clash_meta.tar.gz" '{print time "【" file "】Download Failed:【"$0"】"}' >> "$LOG_FILE"
          else
             curl -SsL --connect-timeout 30 -m 60 --speed-time 30 --speed-limit 1 --retry 2 "$github_address_mod"https://raw.githubusercontent.com/vernesong/OpenClash/core/"$RELEASE_BRANCH"/meta/clash-"$CPU_MODEL".tar.gz -o /tmp/clash_meta.tar.gz 2>&1 |sed ':a;N;$!ba; s/\n/ /g' | awk -v time="$(date "+%Y-%m-%d %H:%M:%S")" -v file="/tmp/clash_meta.tar.gz" '{print time "【" file "】Download Failed:【"$0"】"}' >> "$LOG_FILE"
          fi
@@ -79,6 +90,7 @@ if [ "$CORE_CV" != "$CORE_LV" ] || [ -z "$CORE_CV" ]; then
             LOG_OUT "【"$CORE_TYPE"】Core Update Failed. Please Make Sure Enough Flash Memory Space or Selected Correct Core Platform And Try Again!"
             rm -rf /tmp/clash_meta >/dev/null 2>&1
             SLOG_CLEAN
+            del_lock
             exit 0
          fi
 
@@ -87,9 +99,11 @@ if [ "$CORE_CV" != "$CORE_LV" ] || [ -z "$CORE_CV" ]; then
          if [ "$?" == "0" ]; then
             LOG_OUT "【"$CORE_TYPE"】Core Update Successful!"
             if [ "$if_restart" -eq 1 ]; then
-               uci -q set openclash.config.config_reload=1
+               uci -q set openclash.config.restart=1
                uci -q commit openclash
-               if ([ -z "$2" ] || ([ -n "$2" ] && [ "$2" != "one_key_update" ])) && [ "$(find /tmp/lock/ |grep -v "openclash.lock" |grep -c "openclash")" -le 1 ] && [ "$(unify_ps_prevent)" -eq 0 ]; then
+               if ([ -z "$2" ] || ([ -n "$2" ] && [ "$2" != "one_key_update" ])) && [ "$(unify_ps_prevent)" -eq 0 ]; then
+                  uci -q set openclash.config.restart=0
+                  uci -q commit openclash
                   /etc/init.d/openclash restart >/dev/null 2>&1 &
                fi
             else
@@ -113,4 +127,4 @@ else
 fi
 
 rm -rf /tmp/clash_meta >/dev/null 2>&1
-
+del_lock

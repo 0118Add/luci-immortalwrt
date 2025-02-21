@@ -221,20 +221,6 @@ ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "
                uci_commands << uci_set + 'policy_filter=\"' + x['filter'].to_s + '\"'
             end
          };
-
-         threads_g << Thread.new {
-            #interface-name
-            if x.key?('interface-name') then
-               uci_commands << uci_set + 'interface_name=\"' + x['interface-name'].to_s + '\"'
-            end
-         };
-         
-         threads_g << Thread.new {
-            #routing-mark
-            if x.key?('routing-mark') then
-               uci_commands << uci_set + 'routing_mark=\"' + x['routing-mark'].to_s + '\"'
-            end
-         };
          
          threads_g << Thread.new {
             #other_group
@@ -242,7 +228,8 @@ ruby -ryaml -rYAML -I "/usr/share/openclash" -E UTF-8 -e "
                x['proxies'].each{
                |y|
                   if Value_1.include?(y) then
-                     uci_commands << uci_add + 'other_group=\"^' + y.to_s + '$\"'
+                     commands = uci_add + 'other_group=\"^' + y.to_s + '$\"'
+                     system(commands)
                   end
                }
             end

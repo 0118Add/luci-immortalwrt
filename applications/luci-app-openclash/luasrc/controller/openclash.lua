@@ -31,6 +31,7 @@ function index()
 	entry({"admin", "services", "openclash", "opupdate"},call("action_opupdate"))
 	entry({"admin", "services", "openclash", "coreupdate"},call("action_coreupdate"))
 	entry({"admin", "services", "openclash", "flush_fakeip_cache"}, call("action_flush_fakeip_cache"))
+	entry({"admin", "services", "openclash", "update_config"}, call("action_update_config"))
 	entry({"admin", "services", "openclash", "download_rule"}, call("action_download_rule"))
 	entry({"admin", "services", "openclash", "restore"}, call("action_restore_config"))
 	entry({"admin", "services", "openclash", "backup"}, call("action_backup"))
@@ -104,6 +105,8 @@ local device_arh = luci.sys.exec("uname -m |tr -d '\n'")
 
 if pcall(require, "luci.model.ipkg") then
 	opkg = require "luci.model.ipkg"
+else
+	opkg = nil
 end
 
 local core_path_mode = uci:get("openclash", "config", "small_flash_memory")
@@ -158,19 +161,8 @@ local function chnroutev6()
 end
 
 local function daip()
-	local daip, lan_int_name
-	lan_int_name = uci:get("openclash", "config", "lan_interface_name") or "0"
-	if lan_int_name == "0" then
-		daip = luci.sys.exec("uci -q get network.lan.ipaddr |awk -F '/' '{print $1}' 2>/dev/null |tr -d '\n'")
-	else
-		daip = luci.sys.exec(string.format("ip address show %s | grep -w 'inet'  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n'", lan_int_name))
-	end
-	if not daip or daip == "" then
-		daip = luci.sys.exec("ip address show $(uci -q -p /tmp/state get network.lan.ifname || uci -q -p /tmp/state get network.lan.device) | grep -w 'inet'  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n'")
-	end
-	if not daip or daip == "" then
-		daip = luci.sys.exec("ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1 | tr -d '\n'")
-	end
+	local daip
+	daip = fs.lanip()
 	return daip
 end
 
@@ -212,11 +204,23 @@ local function startlog()
 	return line_trans
 end
 
+local function pkg_type()
+	if fs.access("/usr/bin/apk") then
+		return "apk"
+	else
+		return "opkg"
+	end
+end
+
 local function coremodel()
 	if opkg and opkg.info("libc") and opkg.info("libc")["libc"] then
 		return opkg.info("libc")["libc"]["Architecture"]
 	else
-		return luci.sys.exec("rm -f /var/lock/opkg.lock && opkg status libc 2>/dev/null |grep 'Architecture' |awk -F ': ' '{print $2}' 2>/dev/null")
+		if fs.access("/bin/opkg") then
+			return luci.sys.exec("rm -f /var/lock/opkg.lock && opkg status libc 2>/dev/null |grep 'Architecture' |awk -F ': ' '{print $2}' 2>/dev/null")
+		elseif fs.access("/usr/bin/apk") then
+			return luci.sys.exec("apk list libc 2>/dev/null |awk '{print $2}'")
+		end
 	end
 end
 
@@ -246,7 +250,11 @@ local function opcv()
 	if opkg and opkg.info("luci-app-openclash") and opkg.info("luci-app-openclash")["luci-app-openclash"] then
 		return "v" .. opkg.info("luci-app-openclash")["luci-app-openclash"]["Version"]
 	else
-		return luci.sys.exec("rm -f /var/lock/opkg.lock && opkg status luci-app-openclash 2>/dev/null |grep 'Version' |awk -F 'Version: ' '{print \"v\"$2}'")
+		if fs.access("/bin/opkg") then
+			return luci.sys.exec("rm -f /var/lock/opkg.lock && opkg status luci-app-openclash 2>/dev/null |grep 'Version' |awk -F 'Version: ' '{print \"v\"$2}'")
+		elseif fs.access("/usr/bin/apk") then
+			return "v" .. luci.sys.exec("apk list luci-app-openclash 2>/dev/null|grep 'installed' | grep -oE '[0-9]+(\\.[0-9]+)*' | head -1")
+		end
 	end
 end
 
@@ -340,12 +348,17 @@ function action_flush_fakeip_cache()
 		local dase = dase() or ""
 		local cn_port = cn_port()
 		if not daip or not cn_port then return end
-  	state = luci.sys.exec(string.format('curl -sL -m 3 -H "Content-Type: application/json" -H "Authorization: Bearer %s" -XPOST http://"%s":"%s"/cache/fakeip/flush', dase, daip, cn_port))
-  end
-  luci.http.prepare_content("application/json")
+		state = luci.sys.exec(string.format('curl -sL -m 3 -H "Content-Type: application/json" -H "Authorization: Bearer %s" -XPOST http://"%s":"%s"/cache/fakeip/flush', dase, daip, cn_port))
+	end
+	luci.http.prepare_content("application/json")
 	luci.http.write_json({
 		flush_status = state;
 	})
+end
+
+function action_update_config()
+	local filename = luci.http.formvalue("filename") or "config"
+	luci.sys.exec(string.format("/usr/share/openclash/openclash.sh '%s' >/dev/null 2>&1 &", filename))
 end
 
 function action_restore_config()
@@ -357,6 +370,8 @@ function action_restore_config()
 	luci.sys.call("cp /usr/share/openclash/backup/openclash_force_sniffing* /etc/openclash/custom/ >/dev/null 2>&1 &")
 	luci.sys.call("cp /usr/share/openclash/backup/openclash_sniffing* /etc/openclash/custom/ >/dev/null 2>&1 &")
 	luci.sys.call("cp /usr/share/openclash/backup/yml_change.sh /usr/share/openclash/yml_change.sh >/dev/null 2>&1 &")
+	luci.sys.call("cp /usr/share/openclash/backup/china_ip_route.ipset /etc/openclash/china_ip_route.ipset >/dev/null 2>&1 &")
+	luci.sys.call("cp /usr/share/openclash/backup/china_ip6_route.ipset /etc/openclash/china_ip6_route.ipset >/dev/null 2>&1 &")
 	luci.sys.call("rm -rf /etc/openclash/history/* >/dev/null 2>&1 &")
 end
 
@@ -614,10 +629,18 @@ function set_subinfo_url()
 end
 
 function sub_info_get()
-	local filepath, filename, sub_url, sub_info, info, upload, download, total, expire, http_code, len, percent, day_left, day_expire, surplus, used
+	local sub_ua, filepath, filename, sub_url, sub_info, info, upload, download, total, expire, http_code, len, percent, day_left, day_expire, surplus, used
 	local info_tb = {}
 	filename = luci.http.formvalue("filename")
 	sub_info = ""
+	sub_ua = "Clash"
+	uci:foreach("openclash", "config_subscribe",
+		function(s)
+			if s.name == filename and s.sub_ua then
+				sub_ua = s.sub_ua
+			end
+		end
+	)
 	if filename and not is_start() then
 		uci:foreach("openclash", "subscribe_info",
 			function(s)
@@ -640,7 +663,7 @@ function sub_info_get()
 		if not sub_url then
 			sub_info = "No Sub Info Found"
 		else
-			info = luci.sys.exec(string.format("curl -sLI -X GET -m 10 -w 'http_code='%%{http_code} -H 'User-Agent: Clash' '%s'", sub_url))
+			info = luci.sys.exec(string.format("curl -sLI -X GET -m 10 -w 'http_code='%%{http_code} -H 'User-Agent: %s' '%s'", sub_ua, sub_url))
 			if not info or tonumber(string.sub(string.match(info, "http_code=%d+"), 11, -1)) ~= 200 then
 				info = luci.sys.exec(string.format("curl -sLI -X GET -m 10 -w 'http_code='%%{http_code} -H 'User-Agent: Quantumultx' '%s'", sub_url))
 			end
@@ -660,20 +683,34 @@ function sub_info_get()
 						expire = os.date("%Y-%m-%d", day_expire) or "null"
 						if day_expire and os.time() <= day_expire then
 							day_left = math.ceil((day_expire - os.time()) / (3600*24))
+							if math.ceil(day_left / 365) > 50 then
+								day_left = "∞"
+							end
 						elseif day_expire == nil then
 							day_left = "null"
 						else
 							day_left = 0
 						end
-						if used and total and used < total then
+						if used and total and used <= total then
 							percent = string.format("%.1f",((total-used)/total)*100) or nil
-						elseif used == nil or total == nil or total == 0 then
+							surplus = fs.filesize(total - used) or "null"
+						elseif used == nil and total and total > 0.0 then
 							percent = 100
+							surplus = total
+						elseif total and total == 0.0 then
+							percent = 100
+							surplus = "∞"
 						else
 							percent = 0
+							surplus = "null"
 						end
-						surplus = fs.filesize(total - used) or "null"
-						total = fs.filesize(total) or "null"
+						if total and total > 0.0 then
+							total = fs.filesize(total) or "null"
+						elseif total and total == 0.0 then
+							total = "∞"
+						else
+							total = "null"
+						end
 						used = fs.filesize(used) or "null"
 						sub_info = "Successful"
 					else
@@ -816,7 +853,7 @@ end
 
 local function s(e)
 local t=0
-local a={' B/S',' KB/S',' MB/S',' GB/S',' TB/S'}
+local a={' B/S',' KB/S',' MB/S',' GB/S',' TB/S',' PB/S'}
 if (e<=1024) then
 	return e..a[1]
 else
@@ -1080,6 +1117,7 @@ function action_update_ma()
 	luci.http.prepare_content("application/json")
 	luci.http.write_json({
 			oplv = oplv(),
+			pkg_type = pkg_type(),
 			corelv = corelv(),
 			corever = corever();
 	})

@@ -17,20 +17,7 @@ bold_off = [[</strong>]]
 
 local op_mode = string.sub(luci.sys.exec('uci get openclash.config.operation_mode 2>/dev/null'),0,-2)
 if not op_mode then op_mode = "redir-host" end
-local lan_int_name = uci:get("openclash", "config", "lan_interface_name") or "0"
-
-local lan_ip
-if lan_int_name == "0" then
-	lan_ip = SYS.exec("uci -q get network.lan.ipaddr |awk -F '/' '{print $1}' 2>/dev/null |tr -d '\n'")
-else
-	lan_ip = SYS.exec(string.format("ip address show %s | grep -w 'inet' 2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n'", lan_int_name))
-end
-if not lan_ip or lan_ip == "" then
-	lan_ip = luci.sys.exec("ip address show $(uci -q -p /tmp/state get network.lan.ifname || uci -q -p /tmp/state get network.lan.device) | grep -w 'inet'  2>/dev/null |grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | tr -d '\n'")
-end
-if not lan_ip or lan_ip == "" then
-	lan_ip = luci.sys.exec("ip addr show 2>/dev/null | grep -w 'inet' | grep 'global' | grep 'brd' | grep -Eo 'inet [0-9\.]+' | awk '{print $2}' | head -n 1 | tr -d '\n'")
-end
+local lan_ip = fs.lanip()
 m = Map("openclash", translate("Overwrite Settings"))
 m.pageaction = false
 m.description = translate("Note: To restore the default configuration, try accessing:").." <a href='javascript:void(0)' onclick='javascript:restore_config(this)'>http://"..lan_ip.."/cgi-bin/luci/admin/services/openclash/restore</a>"..
@@ -82,11 +69,10 @@ o:value("http://captive.apple.com/generate_204")
 o.default = "0"
 
 o = s:taboption("settings", Value, "github_address_mod", translate("Github Address Modify"))
-o.description = translate("Modify The Github Address In The Config And OpenClash With Proxy(CDN) To Prevent File Download Faild. Format Reference:").." ".."<a href='javascript:void(0)' onclick='javascript:return winOpen(\"https://mirror.ghproxy.com/\")'>https://mirror.ghproxy.com/</a>"
+o.description = translate("Modify The Github Address In The Config And OpenClash With Proxy(CDN) To Prevent File Download Faild. Format Reference:").." ".."<a href='javascript:void(0)' onclick='javascript:return winOpen(\"https://ghp.ci/\")'>https://ghp.ci/</a>"
 o:value("0", translate("Disable"))
 o:value("https://fastly.jsdelivr.net/")
 o:value("https://testingcf.jsdelivr.net/")
-o:value("https://raw.fastgit.org/")
 o:value("https://cdn.jsdelivr.net/")
 o.default = "0"
 
@@ -294,7 +280,7 @@ o.description = font_red..bold_on..translate("Change The Delay Calculation Metho
 o.default = "0"
 
 o = s:taboption("meta", ListValue, "find_process_mode", translate("Enable Process Rule"))
-o.description = translate("Whether to Enable Process Rules, If You Are Not Sure, Please Choose off Which Useful in Router Environment")
+o.description = translate("Whether to Enable Process Rules, Only Works on Routerself, If You Are Not Sure, Please Choose off Which Useful in Router Environment, Depend on kmod-inet-diag")
 o:value("0", translate("Disable"))
 o:value("off", translate("OFF　"))
 o:value("always", translate("Always　"))
