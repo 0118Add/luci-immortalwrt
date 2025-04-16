@@ -1,14 +1,14 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2024-10-22 12:01+0000\n"
-"Last-Translator: Ondřej Vajda <g3n371k@gmail.com>\n"
+"PO-Revision-Date: 2025-04-14 13:17+0000\n"
+"Last-Translator: Pavel Borecki <pavel.borecki@gmail.com>\n"
 "Language-Team: Czech <https://hosted.weblate.org/projects/openwrt/"
 "luciapplicationsemail/cs/>\n"
 "Language: cs\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
-"X-Generator: Weblate 5.8.2-dev\n"
+"Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
+"X-Generator: Weblate 5.11-dev\n"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:248
 msgid ""
@@ -75,7 +75,7 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:157
 msgid "Client authorization file"
-msgstr ""
+msgstr "Soubor s ověřením se klienta"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:92
 msgid "Configure <a %s>acme.sh to issue a TLS cert</a>."
@@ -97,27 +97,27 @@ msgstr ""
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:115
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:251
 msgid "E.g."
-msgstr ""
+msgstr "Např."
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:10
 msgid "Email Server Configuration"
-msgstr ""
+msgstr "Nastavení e-mailového serveru"
 
 #: applications/luci-app-email/root/usr/share/luci/menu.d/luci-app-email.json:3
 msgid "Email server"
-msgstr ""
+msgstr "E-mailový server"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:214
 msgid "Enable POP3"
-msgstr ""
+msgstr "Zapnout POP3"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:170
 msgid "Enable SMTP client TLS"
-msgstr ""
+msgstr "Zapnout TLS u SMTP klienta"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:90
 msgid "Enable TLS for server"
-msgstr ""
+msgstr "Zapnout TLS pro server"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:52
 msgid "Enable ports in firewall."
@@ -129,11 +129,11 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:281
 msgid "Extra command line options"
-msgstr ""
+msgstr "Další předvolby příkazového řádku"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:272
 msgid "Filter"
-msgstr ""
+msgstr "Filtr"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:12
 msgid "For further information <a %s>check the documentation</a>"
@@ -163,7 +163,7 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:137
 msgid "Mail storage directory"
-msgstr ""
+msgstr "Složka pro ukládání e-mailů"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:36
 msgid "Manual command line options (deprecated)"
@@ -171,7 +171,7 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:30
 msgid "Mode"
-msgstr ""
+msgstr "Režim"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:237
 msgid ""
@@ -191,7 +191,7 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:236
 msgid "POP by name"
-msgstr ""
+msgstr "POP podle názvu"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:24
 msgid "POP3"
@@ -241,23 +241,23 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:22
 msgid "SMTP Server"
-msgstr ""
+msgstr "SMTP server"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:61
 msgid "See <a %s>--anonymous</a>"
-msgstr ""
+msgstr "Viz <a %s>--anonymous</a>"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:70
 msgid "See <a %s>--domain</a>"
-msgstr ""
+msgstr "Viz <a %s>--domain</a>"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:274
 msgid "See <a %s>--filter</a>"
-msgstr ""
+msgstr "Viz <a %s>--filter</a>"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:53
 msgid "See <a %s>--remote-clients</a>"
-msgstr ""
+msgstr "Viz <a %s>--remote-clients</a>"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:264
 msgid "See <a %s>Address verification</a>"
@@ -266,7 +266,7 @@ msgstr ""
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:80
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:159
 msgid "See <a %s>Authentication</a>"
-msgstr ""
+msgstr "Viz <a %s>ověřování</a>"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:283
 msgid "See <a %s>Command line reference</a>"
@@ -294,7 +294,7 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:79
 msgid "Server/proxy authorization file."
-msgstr ""
+msgstr "Soubor pro ověřování serveru/proxy."
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:34
 msgid "Server: receive incoming mail"
@@ -302,7 +302,7 @@ msgstr ""
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:149
 msgid "Smarthost"
-msgstr ""
+msgstr "Smarthost"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:68
 msgid "Specifies the server's domain name that is used in SMTP EHLO."
@@ -326,7 +326,7 @@ msgstr ""
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:102
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:181
 msgid "TLS private key"
-msgstr ""
+msgstr "TLS soukromý klíč"
 
 #: applications/luci-app-email/htdocs/luci-static/resources/view/email/emailrelay.js:215
 msgid "The POP3 used to fetch a mail."
