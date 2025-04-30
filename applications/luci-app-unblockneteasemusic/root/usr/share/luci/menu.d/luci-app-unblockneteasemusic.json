@@ -1,6 +1,6 @@
 {
 	"admin/services/unblockneteasemusic": {
-		"title": "解除网易云音乐播放限制",
+		"title": "音乐解锁",
 		"order": 50,
 		"action": {
 			"type": "firstchild"
