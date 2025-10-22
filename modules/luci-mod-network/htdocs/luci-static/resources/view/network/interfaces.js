@@ -70,9 +70,11 @@ function render_status(node, ifc, with_device) {
 	const changecount = with_device ? 0 : count_changes(ifc.getName());
 	const maindev = ifc.getL3Device() ?? ifc.getDevice();
 	const macaddr = maindev ? maindev.getMAC() : null;
+	const carrier = maindev ? maindev.getCarrier(): null;
 	const cond00 = !changecount && !ifc.isDynamic() && !ifc.isAlias();
 	const cond01 = cond00 && macaddr;
 	const cond02 = cond00 && maindev;
+	const cond03 = cond00 && carrier;
 
 	function addEntries(label, array) {
 		return Array.isArray(array) ? array.flatMap((item) => [label, item]) : [label, null];
@@ -81,6 +83,7 @@ function render_status(node, ifc, with_device) {
 	return L.itemlist(node, [
 		_('Protocol'), with_device ? null : (desc || '?'),
 		_('Device'), with_device ? (maindev ? maindev.getShortName() : E('em', _('Not present'))) : null,
+		_('Carrier'), (cond03) ? _('Present') : _('Absent'),
 		_('Uptime'), (!changecount && ifc.isUp()) ? '%t'.format(ifc.getUptime()) : null,
 		_('MAC'), (cond01) ? macaddr : null,
 		_('RX'), (cond02) ? '%.2mB (%d %s)'.format(maindev.getRXBytes(), maindev.getRXPackets(), _('Pkts.')) : null,
@@ -270,7 +273,8 @@ return view.extend({
 			    stat = document.querySelector('[id="%s-ifc-status"]'.format(ifc.getName())),
 			    resolveZone = render_ifacebox_status(box, ifc),
 			    disabled = ifc ? !ifc.isUp() : true,
-			    dynamic = ifc ? ifc.isDynamic() : false;
+			    dynamic = ifc ? ifc.isDynamic() : false,
+			    pending = ifc ? ifc.isPending() : false;
 
 			if (dsc.hasAttribute('reconnect')) {
 				dom.content(dsc, E('em', _('Interface is starting...')));
@@ -306,8 +310,30 @@ return view.extend({
 				]);
 			}
 
-			btn1.disabled = isReadonlyView || btn1.classList.contains('spinning') || btn2.classList.contains('spinning') || dynamic;
-			btn2.disabled = isReadonlyView || btn1.classList.contains('spinning') || btn2.classList.contains('spinning') || dynamic || disabled;
+			if (isReadonlyView === true) {
+				btn1.disabled = true;
+				btn2.disabled = true;
+			}
+			else if (btn1.classList.contains('spinning') || btn2.classList.contains('spinning')) {
+				btn1.disabled = true;
+				btn2.disabled = true;
+			}
+			else if (dynamic === true) {
+				btn1.disabled = true;
+				btn2.disabled = true;
+			}
+			else if (pending === true) {
+				btn1.disabled = true;
+				btn2.disabled = false;
+			}
+			else if (disabled === true) {
+				btn1.disabled = false;
+				btn2.disabled = true;
+			}
+			else {
+				btn1.disabled = false;
+				btn2.disabled = false;
+			}
 		}
 
 		document.querySelectorAll('.port-status-device[data-device]').forEach(function(node) {
@@ -483,20 +509,19 @@ return view.extend({
 			var tdEl = this.super('renderRowActions', [ section_id, _('Edit') ]),
 			    net = this.networks.filter(function(n) { return n.getName() == section_id })[0],
 			    disabled = net ? !net.isUp() : true,
-			    dynamic = net ? net.isDynamic() : false;
+			    dynamic = net ? net.isDynamic() : false,
+			    pending = net ? net.isPending() : false;
 
 			dom.content(tdEl.lastChild, [
 				E('button', {
 					'class': 'cbi-button cbi-button-neutral reconnect',
 					'click': iface_updown.bind(this, true, section_id),
 					'title': _('Reconnect this interface'),
-					'disabled': dynamic ? 'disabled' : null
 				}, _('Restart')),
 				E('button', {
 					'class': 'cbi-button cbi-button-neutral down',
 					'click': iface_updown.bind(this, false, section_id),
 					'title': _('Shutdown this interface'),
-					'disabled': (dynamic || disabled) ? 'disabled' : null
 				}, _('Stop')),
 				tdEl.lastChild.firstChild,
 				tdEl.lastChild.lastChild
@@ -504,13 +529,33 @@ return view.extend({
 
 			if (!dynamic && net && !uci.get('network', net.getName())) {
 				tdEl.lastChild.childNodes[0].disabled = true;
+				tdEl.lastChild.childNodes[1].disabled = true;
 				tdEl.lastChild.childNodes[2].disabled = true;
 				tdEl.lastChild.childNodes[3].disabled = true;
 			}
-
-			if (dynamic) {
-				//disable the 'Edit' button on dynamic interfaces
+			else if(dynamic === true) {
+				tdEl.lastChild.childNodes[0].disabled = true;
+				tdEl.lastChild.childNodes[1].disabled = true;
 				tdEl.lastChild.childNodes[2].disabled = true;
+				tdEl.lastChild.childNodes[3].disabled = true;
+			}
+			else if(pending === true) {
+				tdEl.lastChild.childNodes[0].disabled = true;
+				tdEl.lastChild.childNodes[1].disabled = false;
+				tdEl.lastChild.childNodes[2].disabled = false;
+				tdEl.lastChild.childNodes[3].disabled = false;
+			}
+			else if (disabled === true){
+				tdEl.lastChild.childNodes[0].disabled = false;
+				tdEl.lastChild.childNodes[1].disabled = true;
+				tdEl.lastChild.childNodes[2].disabled = false;
+				tdEl.lastChild.childNodes[3].disabled = false;
+			}
+			else {
+				tdEl.lastChild.childNodes[0].disabled = false;
+				tdEl.lastChild.childNodes[1].disabled = false;
+				tdEl.lastChild.childNodes[2].disabled = false;
+				tdEl.lastChild.childNodes[3].disabled = false;
 			}
 
 			return tdEl;
@@ -847,7 +892,7 @@ return view.extend({
 					};
 
 					so = ss.taboption('ipv6-ra', form.Value, 'ra_pref64', _('NAT64 prefix'), _('Announce NAT64 prefix in <abbr title="Router Advertisement">RA</abbr> messages.') +  ' ' + 
-						_('See %s and %s.'.format('<a href="%s" target="_blank">RFC6146</a>', '<a href="%s" target="_blank">RFC8781</a>').format('https://www.rfc-editor.org/rfc/rfc6146', 'https://www.rfc-editor.org/rfc/rfc8781')));
+						_('See %s and %s.').format('<a href="%s" target="_blank">RFC6146</a>', '<a href="%s" target="_blank">RFC8781</a>').format('https://www.rfc-editor.org/rfc/rfc6146', 'https://www.rfc-editor.org/rfc/rfc8781'));
 					so.optional = true;
 					so.datatype = 'cidr6';
 					so.placeholder = '64:ff9b::/96';
